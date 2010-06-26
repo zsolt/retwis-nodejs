@@ -1,0 +1,28 @@
+<div class="span-16" id="maincol">
+  <h3>Timeline</h3>
+  
+  Posts from all users.
+  <br />
+
+
+<div id="posts" class="span-15">
+  <%= posts.length %>
+  <% posts.forEach(function(item, i) { %>
+    <div class="post">
+      <strong><a href="#">link_to_user</a></strong>
+      <%= item.content %>
+      <div class="date">
+        date
+      </div>
+    </div>
+  <% }); %>
+</div>
+
+
+</div>
+<div class="span-7 last" id="rightcol">
+  <div class="span-7 box">
+    <h4>New users</h4>
+    
+  </div>
+</div>

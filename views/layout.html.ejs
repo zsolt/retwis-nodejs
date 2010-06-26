@@ -1,0 +1,43 @@
+<ntml>
+  <head>
+    <title>Retwis-RB</title>
+    <link rel="stylesheet" href="/public/css/screen.css" type="text/css" media="screen, projection">
+    <link rel="stylesheet" href="/public/css/print.css" type="text/css" media="print"> 
+    <!--[if IE]>
+      <link rel="stylesheet" href="/public/css/ie.css" type="text/css" media="screen, projection">
+    <![endif]-->
+    <link rel="stylesheet" href="/public/css/custom.css" type="text/css" media="screen, projection"> 
+  </head>
+  <body>
+    <br />
+    <div class="container">
+      <div id="header" class="span-24">
+        <div class="span-12">
+          <h1>Retwis-node.js</h1>
+        </div>
+          <div class="span-12 last right-align">
+            <% if (this.session["userId"]) { %>
+              <br /><br />
+              <a href="/">home</a> | 
+              <a href="/<%= this.session["userId"] %>/mentions">mentions</a> | 
+                <%= this.session["userId"] %> | 
+              <a href="/timeline">timeline</a> | 
+              <a href="/logout">logout</a>
+            <% } %>            
+          </div>
+        <hr />
+      </div>
+      <div class="span-24">
+
+      <%= body %>
+
+      </div>
+      <div class="span-24 last">
+        <hr />
+        Retwis-node.js is a simple Twitter clone written in Javascript to show off 
+        the <a href="http://code.google.com/p/redis/">Redis key-value database</a>.
+        The code is on <a href="http://github.com/zsolt/retwis-nodejs">Github</a>.
+      </div>
+    </div>
+  </body>
+</html>
