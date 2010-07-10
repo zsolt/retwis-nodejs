@@ -1,28 +1,41 @@
 <div class="span-16" id="maincol">
-  <h3>Timeline</h3>
-  
-  Posts from all users.
-  <br />
 
-
-<div id="posts" class="span-15">
-  <%= posts.length %>
-  <% posts.forEach(function(item, i) { %>
-    <div class="post">
-      <strong><a href="#">link_to_user</a></strong>
-      <%= item.content %>
-      <div class="date">
-        date
+  <div id="updateform" class="box">
+    <% if (posting_error) { %>
+      <div class="error">
+        <%= posting_error %>
       </div>
-    </div>
-  <% }); %>
+    <% } %>
+    <form action="/post" method="post">
+      <%= this.session["user"].username %>, what's on your mind? <br />
+      <textarea name="content" rows="3" columns="70"></textarea><br />
+      <input type="submit" value="Update">
+    </form>
+  </div>
+
+  <div id="posts" class="span-15">
+    <% posts.forEach(function(item, i) { %>
+      <div class="post">
+        <strong><a href="#">link_to_user</a></strong>
+        <%= item.content %>
+        <div class="date">
+          <%= new Date(parseInt(item.createdAt)).when() %>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+    
 </div>
 
-
-</div>
 <div class="span-7 last" id="rightcol">
   <div class="span-7 box">
-    <h4>New users</h4>
-    
+    followers = @logged_in_user.followers
+    <h4>pluralize("follower", "followers", followers.length)</h4>
+    erb :_user_list, :locals => {:users => followers }
+  </div>
+  <div class="span-7 box">
+    followees = @logged_in_user.followees
+    <h4>Following followees.length</h4>
+    erb :_user_list, :locals => {:users => followees }
   </div>
 </div>

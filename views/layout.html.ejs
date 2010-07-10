@@ -16,11 +16,11 @@
           <h1>Retwis-node.js</h1>
         </div>
           <div class="span-12 last right-align">
-            <% if (this.session["userId"]) { %>
+            <% if (this.session["user"]) { %>
               <br /><br />
               <a href="/">home</a> | 
-              <a href="/<%= this.session["userId"] %>/mentions">mentions</a> | 
-                <%= this.session["userId"] %> | 
+              <a href="/<%= this.session["user"].id %>/mentions">mentions</a> | 
+                <%= this.session["user"].username %> | 
               <a href="/timeline">timeline</a> | 
               <a href="/logout">logout</a>
             <% } %>            

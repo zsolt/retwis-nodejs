@@ -1,11 +1,11 @@
 var sys = require("sys");
 
 before(function(request) {
-  var loggedIn = request.session["userId"]
-  if (!loggedIn &&
-      request.url.pathname !== "/login" && 
-      request.url.pathname !== '/signup' && 
-      request.url.pathname.indexOf("/public") !== 0) {
+  var user = request.session["user"]
+  if (!user &&
+    request.url.pathname !== "/login" && 
+    request.url.pathname !== '/signup' && 
+    request.url.pathname.indexOf("/public") !== 0) {
     this.redirect('/login');
   }
 });
@@ -21,12 +21,24 @@ get('/login', function() {
 })
 
 post('/login', function() {
-  this.session["userId"] = 1;
-  this.redirect("/")   
+  var self = this
+  User.find_by_username(this.param('username'), function(err, user) {
+    if (user && user.hashedPassword == User.hash_pw(user.salt, self.param('password'))) {
+      self.session["user"] = user
+      self.redirect("/")             
+    } else {
+      self.render("login.html.ejs", {
+        locals: {
+          login_error: "Incorrect username or password",
+          signup_error: null
+        }
+      })        
+    }
+  })
 }) 
 
 get('/logout', function() {
-  this.session["userId"] = null
+  this.session["user"] = null
   this.redirect('/login')
 })
 
@@ -55,9 +67,10 @@ post('/signup', function() {
           }
         })
       else {
-        //user = User.create(param[:username], param[:password])
-        self.session["userId"] = 1
-        self.redirect("/")
+        User.create(self.param('username'), self.param('password'), function(err, user) {
+          self.session["user"] = user
+          self.redirect("/")            
+        })
       }          
     });
   }
