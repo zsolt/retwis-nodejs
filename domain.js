@@ -105,11 +105,32 @@ User.find_by_username = function(username, callback) {
 }
 
 User.find_by_id = function(id, callback) {
-  RedisClient.get("user:id:" + user_id + ":username", function(err, username) {
+  RedisClient.get("user:id:" + id + ":username", function(err, username) {
     if (err) callback(err, null)    
     else if (username) {
       User.find_by_username(username, callback);
     }
+  })
+}
+
+User.new_users = function(callback) {
+  RedisClient.lrange("users", 0, 10, function(err, values) {
+    if (err) callback(err)
+    else {
+      var users = []
+      if (values) {
+        values.forEach(function(userId, i) {
+          User.find_by_id(userId, function(err, user) {
+            users.push(user);
+            if (i == values.length - 1) {
+              callback(null, users)                        
+            }                  
+          }); 
+        });
+      } else {
+        callback(null, [])
+      }       
+    }   
   })
 }
 

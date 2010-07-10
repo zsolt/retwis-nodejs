@@ -49,11 +49,14 @@ get('/timeline', function(){
   var posts =[];
 
   Timeline.page(1, function (err, posts) {
-    self.render("timeline.html.ejs", {
-      locals: {
-          title: "Retwis-nodejs",
-          posts: posts
-      }
+    User.new_users(function(err, newUsers) {
+      self.render("timeline.html.ejs", {
+        locals: {
+            title: "Retwis-nodejs",
+            posts: posts,
+            newUsers: newUsers
+        }
+      });
     });                                        
   });
 

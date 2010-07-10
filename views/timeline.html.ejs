@@ -22,6 +22,10 @@
 <div class="span-7 last" id="rightcol">
   <div class="span-7 box">
     <h4>New users</h4>
-    
+    <ul class="user-list">
+      <% newUsers.forEach(function(user, i) { %>      
+        <li><a href="/<%= user.username %>"><%= user.username %></a></li>
+      <% }); %>
+    </ul>    
   </div>
 </div>
