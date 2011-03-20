@@ -2,11 +2,10 @@ var sys = require("sys");
 
 
 authenticated = function(req, res, next) {
-  var user = req.session["user"]
-  if (!user) {
-    res.redirect('/login');
-  } else {
+  if (req.session && req.session.user) {
     next();
+  } else {
+    res.redirect('/login');
   }
 };
 

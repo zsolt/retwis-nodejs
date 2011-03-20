@@ -355,6 +355,8 @@ Post.create = function(user, content, callback) {
         followers.forEach(function(follower, i) {
           RedisClient.lpush("user:id:" + follower.id + ":timeline", post.id, group());            
         })
+      } else {
+        return post;	    
       }    
     },
     
