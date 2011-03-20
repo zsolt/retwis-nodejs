@@ -240,16 +240,18 @@ User.followees = function(user_id, callback) {
 
 User.follow = function(user_id, target_user_id, callback) {
   if (user_id == target_user_id) return;
-  RedisClient.sadd("user:id:" + user_id + ":followees", target_user_id, function() {
-      RedisClient.sadd("user:id:" + target_user_id + ":followers", user_id, callback)
-  })    
+  RedisClient.multi()
+    .sadd("user:id:" + user_id + ":followees", target_user_id)
+    .sadd("user:id:" + target_user_id + ":followers", user_id)
+    .exec(callback)
 }
 
 User.stopFollowing = function(user_id, target_user_id, callback) {
   if (user_id == target_user_id) return;
-  RedisClient.srem("user:id:" + user_id + ":followees", target_user_id, function() {
-      RedisClient.srem("user:id:" + target_user_id + ":followers", user_id, callback)
-  })    
+  RedisClient.multi()
+    .srem("user:id:" + user_id + ":followees", target_user_id)
+    .srem("user:id:" + target_user_id + ":followers", user_id)
+    .exec(callback)
 }
 
 User.isFollowing = function(user_id, target_user_id, callback) {
