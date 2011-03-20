@@ -1,12 +1,12 @@
 <ntml>
   <head>
-    <title>Retwis-RB</title>
-    <link rel="stylesheet" href="/public/css/screen.css" type="text/css" media="screen, projection">
-    <link rel="stylesheet" href="/public/css/print.css" type="text/css" media="print"> 
+    <title>Retwis-node.js</title>
+    <link rel="stylesheet" href="/css/screen.css" type="text/css" media="screen, projection">
+    <link rel="stylesheet" href="/css/print.css" type="text/css" media="print"> 
     <!--[if IE]>
-      <link rel="stylesheet" href="/public/css/ie.css" type="text/css" media="screen, projection">
+      <link rel="stylesheet" href="/css/ie.css" type="text/css" media="screen, projection">
     <![endif]-->
-    <link rel="stylesheet" href="/public/css/custom.css" type="text/css" media="screen, projection"> 
+    <link rel="stylesheet" href="/css/custom.css" type="text/css" media="screen, projection"> 
   </head>
   <body>
     <br />
@@ -16,11 +16,11 @@
           <h1>Retwis-node.js</h1>
         </div>
           <div class="span-12 last right-align">
-            <% if (this.session["user"]) { %>
+            <% if (current_user) { %>
               <br /><br />
               <a href="/">home</a> | 
-              <a href="/<%= this.session["user"].id %>/mentions">mentions</a> | 
-                <%= this.session["user"].username %> | 
+              <a href="/<%= current_user.id %>/mentions">mentions</a> | 
+                <%= current_user.username %> | 
               <a href="/timeline">timeline</a> | 
               <a href="/logout">logout</a>
             <% } %>            
@@ -29,7 +29,7 @@
       </div>
       <div class="span-24">
 
-      <%= body %>
+      <%- body %>
 
       </div>
       <div class="span-24 last">

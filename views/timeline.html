@@ -8,7 +8,7 @@
   <div id="posts" class="span-15">
     <% posts.forEach(function(item, i) { %>
       <div class="post">
-        <strong><a href="#">link_to_user</a></strong>
+        <strong><a href="/<%= item.user.username %>"><%= item.user.username %></a></strong>
         <%= item.content %>
         <div class="date">
           <%= new Date(parseInt(item.createdAt)).when() %>

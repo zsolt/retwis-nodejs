@@ -1,0 +1,45 @@
+<div class="span-16" id="maincol">
+  <h2><%= user.username %></h2>
+  <% if (user.id != current_user.id) { %>
+    <div class="box">  
+      <% if (isFollowing) { %>
+        <a href="/<%= user.username %>/stopfollow">Stop following</a>
+      <% } else { %>
+        <a href="/<%= user.username %>/follow">Follow</a>
+      <% } %>
+      | <a href="/<%= user.username %>/mentions">See mentions</a>
+    </div>
+  <% } %>
+  
+  <div id="posts" class="span-15">
+    <% posts.forEach(function(item, i) { %>
+      <div class="post">
+        <strong><a href="/<%= item.user.username %>"><%= item.user.username %></a></strong>
+        <%= item.content %>
+        <div class="date">
+          <%= new Date(parseInt(item.createdAt)).when() %>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+    
+</div>
+
+<div class="span-7 last" id="rightcol">
+  <div class="span-7 box">
+    <h4>Followers</h4>
+    <ul class="user-list">
+      <% followers.forEach(function(item, i) { %>
+        <li><a href="/<%= item.username %>"><%= item.username %></a></li>
+      <% }) %>
+    </ul>    
+  </div>
+  <div class="span-7 box">
+    <h4>Followees</h4>
+    <ul class="user-list">
+      <% followees.forEach(function(item, i) { %>
+        <li><a href="/<%= item.username %>"><%= item.username %></a></li>
+      <% }) %>
+    </ul>    
+  </div>
+</div>

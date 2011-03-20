@@ -1,56 +1,68 @@
 // $ kiwi install redis-client
 
 var sys = require("sys"), 
-    kiwi = require("kiwi"),
-    client = kiwi.require("redis-client").createClient();
-kiwi.require('express');
-require('express/plugins');
+    client = require("redis").createClient(),
+    express = require("express");
+    
+app = express.createServer();
 
-configure(function(){
-  use(ContentLength)
-  use(Static)
-  use(Logger)
-  use(Cookie)
-  use(Session)
-  use(Hooks)
-  enable('show exceptions')
+app.configure(function(){
+  app.use(express.logger('\x1b[33m:method\x1b[0m \x1b[32m:url\x1b[0m :response-time'));
+  app.use(express.bodyParser());
+  app.use(express.methodOverride());
+  app.use(express.cookieParser());
+  app.use(express.session({ secret: 'keyboard cat' }));
+  app.use(app.router);
+  app.use(express.static(__dirname + '/public'));
+  app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+});
 
-  set('root', __dirname);
-})
+app.register('.html', require('ejs'));
+
+app.set('views', __dirname + '/views');
+app.set('view engine', 'html');
 
 RedisClient = client;
 
 require("./domain");
 require("./login-signup");
 
-helpers = {
-  
-};
+app.dynamicHelpers({
+   current_user: function(req) {
+     return req.session.user;
+   }, 
+   req: function(req) {
+     return req;
+   }
+})
 
-get('/', function(){
-  this.contentType('html');
-  var user = this.session["user"]
-  var self = this
-  user.timeline(1, function(err, posts) {
-    self.render("index.html.ejs", {
-      locals: {
-          title: "Retwis-nodejs",
-          posts: posts,
-          posting_error: null,
-          helpers: helpers
-      }
-    });      
+app.get('/', authenticated, function(req, res){
+  res.contentType('html');
+  var user = req.session.user
+  User.timeline(user.id, 1, function(err, posts) {
+    User.followers(user.id, function(err, followers) {
+      User.followees(user.id, function(err, followees) {
+        res.render("index", {
+          locals: {
+              title: "Retwis-nodejs",
+              posts: posts,
+              followers: followers,
+              followees: followees,
+              posting_error: null
+          }
+        });      
+      });      
+    });    
   })
 })
 
-get('/timeline', function(){
-  this.contentType('html');
-  var self = this;
+app.get('/timeline', function(req, res){
+  res.contentType('html');
   var posts =[];
 
   Timeline.page(1, function (err, posts) {
     User.new_users(function(err, newUsers) {
-      self.render("timeline.html.ejs", {
+      res.render("timeline", {
         locals: {
             title: "Retwis-nodejs",
             posts: posts,
@@ -62,30 +74,79 @@ get('/timeline', function(){
 
 });
 
-post('/post', function() {
+
+app.post('/post', authenticated, function(req, res) {
   var posting_error = null
-  if (this.param('content').length == 0)
+  if (req.param('content').length == 0)
     posting_error = "You didn't enter anything."
-  else if (this.param('content').length > 140)
+  else if (req.param('content').length > 140)
     posting_error = "Keep it to 140 characters please!"
   
-  var user = this.session["user"]
+  var user = req.session["user"]
   if (posting_error) {
-    var self = this
-    user.timeline(1, function(err, posts) {
-      self.render("index.html.ejs", {
-        locals: {
-            title: "Retwis-nodejs",
-            posts: posts,
-            posting_error: posting_error
-        }
+    User.timeline(user.id, 1, function(err, posts) {
+      User.followers(user.id, function(err, followers) {
+        User.followees(user.id, function(err, followees) {
+          res.render("index", {
+            locals: {
+                title: "Retwis-nodejs",
+                posts: posts,
+                followers: followers,
+                followees: followees,
+                posting_error: posting_error
+            }
+          });      
+        });      
       });      
     })
   } else {
-    Post.create(user, this.param('content'))
-    this.redirect('/')
+    Post.create(user, req.param('content'), function(err, post) {
+        res.redirect('/')   
+    })
   }
 
 });
 
-run();
+app.get('/:username', authenticated, function(req, res){
+  var current_user = req.session["user"]
+  User.find_by_username(req.params.username, function(err, user) {
+    User.posts(user.id, 1, function(err, posts) {
+      User.followers(user.id, function(err, followers) {
+        User.followees(user.id, function(err, followees) {
+          User.isFollowing(current_user.id, user.id, function(err, isFollowing) {        
+          res.render("profile", {
+            locals: {
+                title: "Retwis-nodejs ~ " + user.username,
+                followers: followers,
+                followees: followees,
+                isFollowing: isFollowing,
+                posts: posts,
+                user: user
+            }
+          });      
+          });      
+        });      
+      });            
+    });
+  })
+});
+
+app.get('/:username/follow', authenticated, function(req, res){
+  var current_user = req.session["user"]
+  User.find_by_username(req.params.username, function(err, user) {
+    User.follow(current_user.id, user.id, function() {
+      res.redirect('/' + user.username)
+    });
+  });  
+});
+
+app.get('/:username/stopfollow', authenticated, function(req, res){
+  var current_user = req.session["user"]
+  User.find_by_username(req.params.username, function(err, user) {
+    User.stopFollowing(current_user.id, user.id, function() {
+      res.redirect('/' + user.username)
+    });
+  });  
+});
+
+app.listen(3000);

@@ -7,7 +7,7 @@
       </div>
     <% } %>
     <form action="/post" method="post">
-      <%= this.session["user"].username %>, what's on your mind? <br />
+      <%= current_user.username %>, what's on your mind? <br />
       <textarea name="content" rows="3" columns="70"></textarea><br />
       <input type="submit" value="Update">
     </form>
@@ -16,7 +16,7 @@
   <div id="posts" class="span-15">
     <% posts.forEach(function(item, i) { %>
       <div class="post">
-        <strong><a href="#">link_to_user</a></strong>
+        <strong><a href="/<%= item.user.username %>"><%= item.user.username %></a></strong>
         <%= item.content %>
         <div class="date">
           <%= new Date(parseInt(item.createdAt)).when() %>
@@ -29,13 +29,19 @@
 
 <div class="span-7 last" id="rightcol">
   <div class="span-7 box">
-    followers = @logged_in_user.followers
-    <h4>pluralize("follower", "followers", followers.length)</h4>
-    erb :_user_list, :locals => {:users => followers }
+    <h4>Followers</h4>
+    <ul class="user-list">
+      <% followers.forEach(function(item, i) { %>
+        <li><a href="/<%= item.username %>"><%= item.username %></a></li>
+      <% }) %>
+    </ul>    
   </div>
   <div class="span-7 box">
-    followees = @logged_in_user.followees
-    <h4>Following followees.length</h4>
-    erb :_user_list, :locals => {:users => followees }
+    <h4>Followees</h4>
+    <ul class="user-list">
+      <% followees.forEach(function(item, i) { %>
+        <li><a href="/<%= item.username %>"><%= item.username %></a></li>
+      <% }) %>
+    </ul>    
   </div>
 </div>

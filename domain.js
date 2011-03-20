@@ -1,6 +1,5 @@
 var sys = require("sys"),
-    kiwi = require("kiwi"),
-    hashlib = kiwi.require("hashlib")
+    hashlib = require("hashlib")
 
 
 Date.prototype.when = function() {
@@ -50,7 +49,7 @@ User.generateSalt = function() {
 }
 
 User.hash_pw = function(salt, password) {
-  return hashlib.sha1(salt, password)
+  return hashlib.sha1(salt + password)
 }
 
 User.create = function(username, password, callback) {
@@ -134,19 +133,49 @@ User.new_users = function(callback) {
   })
 }
 
-User.prototype.timeline = function(page, callback) {
+User.timeline = function(user_id, page, callback) {
   var from = (page-1) * 10;
   var to = page * 10;
-  RedisClient.lrange("user:id:" + this.id + ":timeline", from, to, function(err, values){
+  RedisClient.lrange("user:id:" + user_id + ":timeline", from, to, function(err, values){
     if (err) callback(err)
     else {
       var posts = []
-      if (values) {
+      if (values && values.length > 0) {
         values.forEach(function(postId, i) {
           Post.find_by_id(postId, function(err, post) {
             posts.push(post);
             if (i == values.length - 1) {
-              // TODO: load post's users
+              callback(null, posts)                        
+            }                  
+          }); 
+        });
+      } else {
+        callback(null, [])
+      }                     
+    }
+  })
+};
+/*
+  def posts(page=1)
+    from, to = (page-1)*10, page*10
+    redis.list_range("user:id:#{id}:posts", from, to).map do |post_id|
+      Post.new(post_id)
+    end
+  end
+*/
+
+User.posts = function(user_id, page, callback) {
+  var from = (page-1) * 10;
+  var to = page * 10;
+  RedisClient.lrange("user:id:" + user_id + ":posts", from, to, function(err, values){
+    if (err) callback(err)
+    else {
+      var posts = []
+      if (values && values.length > 0) {
+        values.forEach(function(postId, i) {
+          Post.find_by_id(postId, function(err, post) {
+            posts.push(post);
+            if (i == values.length - 1) {
               callback(null, posts)                        
             }                  
           }); 
@@ -158,18 +187,73 @@ User.prototype.timeline = function(page, callback) {
   })
 };
 
-User.prototype.addPost = function(post, callback) {
-  var self = this
-  RedisClient.lpush("user:id:" + self.id + ":posts", post.id, function(err) {
+User.addPost = function(user_id, post, callback) {
+  RedisClient.lpush("user:id:" + user_id + ":posts", post.id, function(err) {
     if (err) callback(err)
     else {
-      RedisClient.lpush("user:id:" + self.id + ":timeline", post.id, callback)
+      RedisClient.lpush("user:id:" + user_id + ":timeline", post.id, callback)
     }
   })
 };
 
-User.prototype.followers = function(callback) {
-  RedisClient.smembers("user:id:" + this.id + ":followers", callback)
+User.followers = function(user_id, callback) {
+  RedisClient.smembers("user:id:" + user_id + ":followers", function(err, members) {
+    if (err) callback(err)
+    else {
+      var users = []
+      if (members && members.length > 0) {
+        members.forEach(function(userId, i) {
+          User.find_by_id(userId, function(err, user) {
+            users.push(user);
+            if (i == members.length - 1) {
+              callback(null, users)                        
+            }                  
+          }); 
+        });
+      } else {
+        callback(null, [])
+      }       
+    }       
+  })
+}
+
+User.followees = function(user_id, callback) {
+  RedisClient.smembers("user:id:" + user_id + ":followees", function(err, members) {
+    if (err) callback(err)
+    else {
+      var users = []
+      if (members && members.length > 0) {
+        members.forEach(function(userId, i) {
+          User.find_by_id(userId, function(err, user) {
+            users.push(user);
+            if (i == members.length - 1) {
+              callback(null, users)                        
+            }                  
+          }); 
+        });
+      } else {
+        callback(null, [])
+      }       
+    }       
+  })
+}
+
+User.follow = function(user_id, target_user_id, callback) {
+  if (user_id == target_user_id) return;
+  RedisClient.sadd("user:id:" + user_id + ":followees", target_user_id, function() {
+      RedisClient.sadd("user:id:" + target_user_id + ":followers", user_id, callback)
+  })    
+}
+
+User.stopFollowing = function(user_id, target_user_id, callback) {
+  if (user_id == target_user_id) return;
+  RedisClient.srem("user:id:" + user_id + ":followees", target_user_id, function() {
+      RedisClient.srem("user:id:" + target_user_id + ":followers", user_id, callback)
+  })    
+}
+
+User.isFollowing = function(user_id, target_user_id, callback) {
+    RedisClient.sismember("user:id:" + user_id + ":followees", target_user_id, callback)
 }
 
 Timeline = function() {};
@@ -181,7 +265,7 @@ Timeline.page = function(pageIndex, callback) {
     if (err) callback(err)
     else {
       var posts = []
-      if (values) {
+      if (values && values.length > 0) {
         values.forEach(function(postId, i) {
           Post.find_by_id(postId, function(err, post) {
             posts.push(post);
@@ -211,7 +295,14 @@ Post.find_by_id = function(postId, callback) {
         post.content = values[0]
         post.userId = values[1]
         post.createdAt = values[2]
-        callback(null, post)
+        // load author
+        User.find_by_id(post.userId, function(err, user) {
+            if (err) callback(err)
+            else {
+              post.user = user
+              callback(null, post)
+            }
+        })        
       }
     }
   )
@@ -233,25 +324,17 @@ Post.create = function(user, content, callback) {
       function(err) {
         if (err) callback(err)
         else {
-          user.addPost(post, function(err) {
+          User.addPost(user.id, post, function(err) {
             RedisClient.lpush("timeline", post.id, function(err) {
               if (err) callback(err)
               else {
-                user.followers(function(err, followers) {
+                User.followers(user.id, function(err, followers) {
                   if (err) callback(err)
                   else {                
-                    if (followers) {
-                      followers.forEach(function(follower_id, i) {
-                        RedisClient.lpush("user:id:" + follower_id + ":timeline", function(err) {
-                          if (i == followers.length - 1) {                      
-                            /*
-
-                            content.scan(/@\w+/).each do |mention|
-                              if user = User.find_by_username(mention[1..-1])
-                                user.add_mention(post)
-                              end
-                            end
-                            */              
+                    if (followers && followers.length > 0) {
+                      followers.forEach(function(follower, i) {
+                        RedisClient.lpush("user:id:" + follower.id + ":timeline", post.id, function(err) {
+                          if (i == followers.length - 1) {                                   
                             callback(null, post)
                           }  
                         })
@@ -269,24 +352,6 @@ Post.create = function(user, content, callback) {
   })  
 };
 
-["content", "user_id", "created_at"].forEach(function(field, i) {
-    Post.prototype["get_" + field] = function(callback) {
-        RedisClient.get("post:id:" + this.id + ":" + field, function(err, value) {
-            if (err) callback(err)
-            else {
-                callback(null, value);
-            }        
-        });  
-    };
-    Post.prototype["set_" + field] = function(value, callback) {
-        RedisClient.set("post:id:" + this.id + ":" + field, value, function(err, value) {
-            if (err) callback(err)
-            else {
-                callback(null, value);
-            }        
-        });  
-    };
-});
 
 exports.Timeline = Timeline;
 exports.Post = Post;
