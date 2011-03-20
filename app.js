@@ -150,3 +150,4 @@ app.get('/:username/stopfollow', authenticated, function(req, res){
 });
 
 app.listen(3000);
+console.log("Started up on port 3000");
