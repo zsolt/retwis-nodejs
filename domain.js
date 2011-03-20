@@ -1,5 +1,6 @@
 var sys = require("sys"),
     hashlib = require("hashlib")
+    Step = require('step')
 
 
 Date.prototype.when = function() {
@@ -310,48 +311,57 @@ Post.find_by_id = function(postId, callback) {
   )
 };
 
+
 Post.create = function(user, content, callback) {
-  RedisClient.incr("post:uid", function(err, postId) {
-    if (err) { callback(err); return }
+  var post = null;
+  
+  Step(
+    function() {
+      RedisClient.incr("post:uid", this) 
+    },
     
-    var post = new Post();
-    post.id = postId;
-    post.content = content
-    post.createdAt = new Date().getTime()
-    post.userId = user.id
+    function(err, postId) {
+      if (err) throw err;
+      post = new Post();
+      post.id = postId;
+      post.content = content;
+      post.createdAt = new Date().getTime();
+      post.userId = user.id;
+      
+      RedisClient.mset("post:id:" + post.id + ":content", post.content,
+        "post:id:" + post.id + ":user_id", post.userId,
+        "post:id:" + post.id + ":created_at", post.createdAt, this); 
+    },
+      
+    function(err) {
+      if (err) throw err;      
+      User.addPost(user.id, post, this);
+    },
     
-    RedisClient.mset("post:id:" + post.id + ":content", post.content,
-      "post:id:" + post.id + ":user_id", post.userId,
-      "post:id:" + post.id + ":created_at", post.createdAt, 
-      function(err) {
-        if (err) callback(err)
-        else {
-          User.addPost(user.id, post, function(err) {
-            RedisClient.lpush("timeline", post.id, function(err) {
-              if (err) callback(err)
-              else {
-                User.followers(user.id, function(err, followers) {
-                  if (err) callback(err)
-                  else {                
-                    if (followers && followers.length > 0) {
-                      followers.forEach(function(follower, i) {
-                        RedisClient.lpush("user:id:" + follower.id + ":timeline", post.id, function(err) {
-                          if (i == followers.length - 1) {                                   
-                            callback(null, post)
-                          }  
-                        })
-                          
-                      })
-                    }
-                  }
-                })
-              }
-            })
-          })                             
-            
-        }
-      })
-  })  
+    function(err) {
+      if (err) throw err;
+      RedisClient.lpush("timeline", post.id, this);
+    },
+
+    function(err) {
+      if (err) throw err;
+      User.followers(user.id, this);
+    },
+    
+    function(err, followers) {
+      if (err) throw err;
+      if (followers && followers.length > 0) {
+        var group = this.group();
+        followers.forEach(function(follower, i) {
+          RedisClient.lpush("user:id:" + follower.id + ":timeline", post.id, group());            
+        })
+      }    
+    },
+    
+    function(err) {
+      callback(err, post);
+    }
+  )  
 };
 
 
