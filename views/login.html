@@ -35,7 +35,7 @@
     <table>
       <tr>
         <td>username</td>
-        <td><input name="username" value="<%= req.param('username') %>"/></td>
+        <td><input name="username" value="<%= req.param('username') || '' %>"/></td>
       </tr>
       <tr>
         <td>password</td>
