@@ -19,7 +19,7 @@
             <% if (current_user) { %>
               <br /><br />
               <a href="/">home</a> | 
-              <a href="/<%= current_user.id %>/mentions">mentions</a> | 
+              <a href="/<%= current_user.username %>/mentions">mentions</a> | 
                 <%= current_user.username %> | 
               <a href="/timeline">timeline</a> | 
               <a href="/logout">logout</a>

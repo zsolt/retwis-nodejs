@@ -1,0 +1,16 @@
+<div class="span-16" id="maincol">
+  <h3>Mentions of <%= req.params.username %></h3>
+  
+  <div id="posts" class="span-15">
+    <% posts.forEach(function(item, i) { %>
+      <div class="post">
+        <strong><a href="/<%= item.user.username %>"><%= item.user.username %></a></strong>
+        <%= item.content %>
+        <div class="date">
+          <%= new Date(parseInt(item.createdAt)).when() %>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+
+</div>

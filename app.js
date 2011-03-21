@@ -131,6 +131,17 @@ app.get('/:username', authenticated, function(req, res){
   })
 });
 
+app.get('/:username/mentions', authenticated, function(req, res) {
+  User.mentions(req.params.username, 1, function(err, mentions) {
+    res.render("mentions", {
+        locals: {
+          title: "Retwis-nodejs",
+          posts: mentions
+      }
+    });
+  });
+});
+
 app.get('/:username/follow', authenticated, function(req, res){
   var current_user = req.session["user"]
   User.find_by_username(req.params.username, function(err, user) {

@@ -156,14 +156,6 @@ User.timeline = function(user_id, page, callback) {
     }
   })
 };
-/*
-  def posts(page=1)
-    from, to = (page-1)*10, page*10
-    redis.list_range("user:id:#{id}:posts", from, to).map do |post_id|
-      Post.new(post_id)
-    end
-  end
-*/
 
 User.posts = function(user_id, page, callback) {
   var from = (page-1) * 10;
@@ -196,6 +188,56 @@ User.addPost = function(user_id, post, callback) {
     }
   })
 };
+
+User.addMention = function(userName, postId, callback) {
+  Step(
+    function() {
+      User.find_by_username(userName, this);
+    },
+    
+    function(err, user) {
+      if (err) throw err;
+      if (user) {
+          RedisClient.lpush("user:id:" + user.id + ":mentions", postId, this);
+      } else {
+        return null;
+      }
+    },
+    
+    function(err) {
+      callback(err, null);
+    }
+  );
+}
+
+User.mentions = function(userName, page, callback) {
+  Step(
+    function() {
+      User.find_by_username(userName, this);
+    },
+    
+    function(err, user) {
+      var from = (page-1) * 10;
+      var to = page * 10;
+      RedisClient.lrange("user:id:" + user.id + ":mentions", from, to, this);    
+    },
+    
+    function(err, mentions) {
+      if (mentions && mentions.length > 0) {
+        var group = this.group();
+        mentions.forEach(function(postId, i) {
+          Post.find_by_id(postId, group());
+        });
+      } else {
+        callback(null, []);
+      }
+    },
+    
+    function(err, posts) {
+      callback(err, posts);
+    }
+  );
+}
 
 User.followers = function(user_id, callback) {
   RedisClient.smembers("user:id:" + user_id + ":followers", function(err, members) {
@@ -361,7 +403,20 @@ Post.create = function(user, content, callback) {
     },
     
     function(err) {
-      callback(err, post);
+      var mentions = post.content.match(/@\w+/g);
+      if (mentions) {
+        var group = this.group();
+        mentions.forEach(function(mention, i) {
+            var userName = mention.substring(1);
+            User.addMention(userName, post.id, group());
+        })
+      } else {
+        callback(err, post);
+      }
+    },
+    
+    function(err) {
+      callback(err);
     }
   )  
 };
